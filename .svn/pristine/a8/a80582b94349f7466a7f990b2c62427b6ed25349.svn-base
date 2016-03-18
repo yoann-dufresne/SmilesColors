@@ -1,0 +1,139 @@
+
+/* 
+ * Tuto : http://gildas-lormeau.github.io/zip.js/core-api.html#zip-reading-example
+*/
+
+function Loading () {};
+
+// ---------- Loading functions ----------
+
+Loading.prototype.readZip = function (blob, callback) {
+	var zipfile = new ZipFile(blob.name);
+	model.files.push(zipfile);
+	
+	var entriesAdder = function(entries) {
+		for (var i=0 ; i<entries.length ; i++) {
+			var entry = entries[i];
+			zipfile.addEntry(entry);
+		}
+		callback(zipfile);
+	}
+
+	var readerF = function(reader) {
+		reader.getEntries(entriesAdder);
+	}
+	var errorF = function(error) {};
+
+	// Read zip files
+	zip.createReader(
+		new zip.BlobReader(blob),
+		readerF,
+		errorF
+	);
+}
+
+Loading.prototype.filesSelect = function (evt) {
+	var files = evt.target.files;
+	var textarea = document.getElementById("fileslist").innerHTML;
+	for (var i=0 ; i<files.length ; i++) {
+		var zipfile = loading.readZip(files[i], loading.useDataLoaded);
+		textarea += "<p>" + files[i].name + "</p>\n";
+	}
+	document.getElementById("fileslist").innerHTML = textarea;
+};
+
+Loading.prototype.init = function () {
+	if (window.File && window.FileReader && window.FileList && window.Blob) {
+		zip.workerScriptsPath = "lib/zip/";
+		document.getElementById('files').addEventListener('change', this.filesSelect, false);
+	} else {
+		alert('The File APIs are not fully supported in this browser. Try again with firefox browser : https://www.mozilla.org');
+	}
+}
+
+
+
+// ---------- Parsing functions ----------
+
+Loading.prototype.useDataLoaded = function (zipfile) {
+	loader.callbackCounter = 0;
+	loading.loadJson (zipfile, "matched.json", callbackCounterTester);
+	loading.loadJson (zipfile, "monomers.json", callbackCounterTester);
+	loading.loadJson (zipfile, "residues.json", callbackCounterTester);
+	loading.loadJson (zipfile, "coverage.json", callbackCounterTester);
+	loading.loadJson (zipfile, "suplementaries.json", callbackCounterTester);
+}
+
+Loading.prototype.loadJson = function (zipfile, file, callback) {
+	var entry = zipfile.entries[file];
+
+	var useTxt = function (text) {
+		text = text.split("\n").join('');
+		zipfile.jsons[file] = eval (text);
+		callback (zipfile);
+	};
+
+	entry.getData(new zip.TextWriter(), useTxt);
+}
+
+Loading.prototype.createCoverages = function (zipfile, callback) {
+	var coverages = zipfile.jsons["coverage.json"];
+	for (var i=0 ; i<coverages.length ; i++) {
+		var idx = coverages[i].id;
+		zipfile.coverages[idx] = coverages[i];
+		zipfile.coveragesIdx.push(idx);
+	}
+
+	var sup = zipfile.jsons["suplementaries.json"];
+	for (var i=0 ; i<sup.length ; i++) {
+		var idx = sup[i].id;
+		zipfile.coverages[idx].ratio = sup[i].ratio;
+		zipfile.coverages[idx].colors = sup[i].colors;
+	}
+
+	callback(zipfile);
+}
+
+Loading.prototype.callbackCounterTester = function (zipfile) {
+	callbackCounter++;
+	if (loader.callbackCounter == 5) {
+		loading.createCoverages(zipfile, loading.sort);
+
+		console.log("\"" + zipfile.name + "\" loaded");
+
+		var zipLoaded = document.createEvent("Event");
+		zipLoaded.initEvent("zipLoaded",true,true);
+		zipLoaded.name = zipfile.name;
+		document.dispatchEvent(zipLoaded)
+	}
+}
+
+
+
+
+// ---------- Sorting functions ----------
+
+Loading.prototype.sort = function (zipfile) {
+	for (var i=0 ; i<zipfile.coveragesIdx.length ; i++) {
+		var idx = zipfile.coveragesIdx[i];
+		var coverage = zipfile.coverages[idx];
+
+		var nbMatchs = coverage.matches.length;
+		var ratio = coverage.ratio;
+
+		if (nbMatchs == 1 && ratio >= 0.9) {
+			model.monomers.push(coverage);
+		} else if (nbMatchs > 1 && ratio >= 0.7) {
+			model.peptides.push(coverage);
+		} else {
+			model.others.push(coverage);
+		}
+	}
+}
+
+
+
+
+
+var loading = new Loading();
+loading.init();

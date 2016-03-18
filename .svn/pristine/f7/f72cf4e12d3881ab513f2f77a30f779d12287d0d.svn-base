@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Results</title>
+    <link rel="stylesheet" type="text/css" href="style.css" media="screen">
+  </head>
+
+  <body>
+    <div class='coverage'>
+      <div class='peptide'>
+        <image src='peptides/anguibactin.png' class='covImage' />
+        <div>
+          <p>anguibactin</p>
+          <p>Atomic coverage : 0.25</p>
+        </div>
+      </div>
+
+
+      <p>Correct monomers</p>
+
+      <div class='list' id='correct'>
+
+      </div>
+
+
+      <p>Incorrect monomers</p>
+
+      <div class='list' id='incorrect'>
+        <div class='monomer'>
+          <p>1 Cys</p>
+          <div class='colors'>
+            <div class='color' style='background-color:rgb(255,0,0)'>
+            </div>
+          </div>
+          <img src='monomers/Cys.png' class='miniImg' />
+        </div>
+      </div>
+
+
+      <p>Not found monomers</p>
+
+      <div class='list' id='notFound'>
+        <div class='monomer'>
+          <p>1 DHPT</p>
+      	  <img src='monomers/DHPT.png' class='miniImg' />
+        </div>
+        <div class='monomer'>
+          <p>1 N-OH-Hta</p>
+      	  <img src='monomers/N-OH-Hta.png' class='miniImg' />
+        </div>
+      </div>
+
+    </div>
+  </body>
+</html>

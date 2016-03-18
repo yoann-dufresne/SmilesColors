@@ -1,0 +1,278 @@
+/* ------------------- */
+/* ----- General ----- */
+/* ------------------- */
+
+html {
+	background-color: gray;
+}
+
+body {
+	width: 960px;
+	padding: 5px;
+	margin: auto;
+	padding-top: 90px;
+	background-color: white;
+}
+
+
+
+/* ------------------- */
+/* ------ Menu ------- */
+/* ------------------- */
+
+#menu {
+	position: fixed;
+	top: 0px;
+	padding: 0px;
+	padding-top: 20px;
+	padding-bottom: 20px;
+	margin: 0px;
+	width: 960px;
+	background-color: #E8E8E8;
+}
+
+#menu li {
+	font-size: x-large;
+	display: inline-block;
+	margin-left: 80px;
+	padding: 5px;
+	border: groove gray 3px;
+	border-radius: 4px;
+}
+
+#menu #add {
+	width: 25px;
+	text-align: center;
+}
+
+#menu li:hover {
+	cursor: pointer;
+	background-color: gray;
+}
+
+#menu li:active {
+	background-color: black;
+	color: white;
+}
+
+
+
+/* ------------------- */
+/* ----- zip add ----- */
+/* ------------------- */
+
+#addZip {
+	display: inline-block;
+	position: fixed;
+	right: 0;
+    left: 0;
+    margin-right: auto;
+    margin-left: auto;
+    margin-top: 5%;
+	width: 400px;
+	height: 255px;
+
+	background-color: #E8E8E8;
+	border-radius: 5px;
+
+	text-align: center;
+	font-size: x-large;
+	visibility: hidden;
+}
+
+#addZip #fileslist {
+	width: 80%;
+	height: 100px;
+	background-color: white;
+	margin: auto;
+	margin-top: 15px;
+	overflow: scroll;
+
+	font-size: medium;
+	text-align: left;
+}
+
+
+
+/* ------------------- */
+/* ------ Tabs ------- */
+/* ------------------- */
+
+.tab h1 {
+	text-align: center;
+}
+
+.tab {
+	margin: 0px;
+}
+
+
+
+/* ------------------- */
+/* ------ Pages ------ */
+/* ------------------- */
+
+.pages {
+	text-align: center;
+}
+
+.pages li {
+	display: inline-block;
+	margin-right: 5px;
+	color: blue;
+	text-decoration: underline;
+	cursor: pointer;
+}
+
+.pages .currentPage {
+	color: black;
+	text-decoration: none;
+	cursor: auto;
+}
+
+
+
+/* ------------------- */
+/* ---- Coverages ---- */
+/* ------------------- */
+
+.miniImg {
+	height: 150px;
+	width: 150px;
+}
+
+.peptide>* {
+	vertical-align: middle;
+	display: inline-block;
+}
+
+.peptide>div {
+	width: 50%;
+}
+
+.colors>.color {
+	height: 20px;
+	width: 20px;
+	display: inline-block;
+}
+
+.coverage {
+	margin-bottom: 20px;
+	padding: 10px;
+	border: black solid 1px;
+}
+
+.monomer>p {
+	text-align: center;
+}
+
+.covImage {;
+	width: 50%;
+}
+
+.list {
+	overflow: auto;
+	white-space: nowrap;
+}
+
+.list>div {
+	display: inline-block;
+}
+
+.colors {
+	text-align: center;
+}
+
+/* ------------------- */
+/* ------ Stats ------ */
+/* ------------------- */
+
+#stats .data>div {
+	display: inline-block;
+	vertical-align: middle;
+}
+
+#stats .pannels {
+	border : solid #333333 1px;
+	margin: 4px;
+}
+
+#stats #right {
+	width: 600px;
+}
+
+
+
+#proportions {
+	width: 350px;
+	height: 630px;
+	text-align: center;
+}
+
+#proportions canvas {
+	margin-top: 30px;
+}
+
+#proportions ul {
+	list-style: none;
+	text-align: left;
+}
+
+#proportions li {
+	margin: 2px;
+}
+
+#proportions li * {
+	vertical-align: middle;
+}
+
+#proportions .sticker, #peptidesCharts .sticker {
+	display: inline-block;
+	width: 20px;
+	height: 20px;
+	margin-right: 5px;
+	border-radius: 3px;
+}
+
+
+
+#general {
+	width: 590px;
+	height: 200px;
+}
+
+#general table {
+	margin: auto;
+	text-align: center;
+}
+
+#general td {
+	border: 1px black solid;
+	width: 100px;
+}
+
+#general .title td {
+	border: none;
+	font-weight: bold;
+}
+
+#general .hideCell {
+	visibility: hidden;
+}
+
+
+
+#peptidesCharts {
+	width: 590px;
+	height: 420px;
+	text-align: center;
+}
+
+#peptidesCharts li {
+	display: inline-block;
+	margin: 2px;
+}
+
+#peptidesCharts li * {
+	vertical-align: middle;
+}

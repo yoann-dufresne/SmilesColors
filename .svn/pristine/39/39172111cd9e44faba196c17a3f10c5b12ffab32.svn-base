@@ -1,0 +1,237 @@
+
+/* 
+ * Tuto : http://gildas-lormeau.github.io/zip.js/core-api.html#zip-reading-example
+*/
+
+function Loading () {
+	this.loadingImgs = 0;
+	this.ratioMonos = 0.9;
+	this.ratioPeps = 0.7;
+	this.nbMatchsPep = 2;
+};
+
+// ---------- Loading functions ----------
+
+Loading.prototype.readZip = function (blob, callback) {
+	var zipfile = new ZipFile(blob.name);
+	model.files.push(zipfile);
+	
+	var entriesAdder = function(entries) {
+		for (var i=0 ; i<entries.length ; i++) {
+			var entry = entries[i];
+			zipfile.addEntry(entry);
+		}
+		callback(zipfile);
+	}
+
+	var readerF = function(reader) {
+		reader.getEntries(entriesAdder);
+	}
+	var errorF = function(error) {};
+
+	// Read zip files
+	zip.createReader(
+		new zip.BlobReader(blob),
+		readerF,
+		errorF
+	);
+}
+
+Loading.prototype.filesSelect = function (evt) {
+	var files = evt.target.files;
+	var textarea = document.getElementById("fileslist").innerHTML;
+	for (var i=0 ; i<files.length ; i++) {
+		var zipfile = loading.readZip(files[i], loading.useDataLoaded);
+		textarea += "<p>" + files[i].name + "</p>\n";
+	}
+	document.getElementById("fileslist").innerHTML = textarea;
+};
+
+Loading.prototype.init = function () {
+	if (window.File && window.FileReader && window.FileList && window.Blob) {
+		zip.workerScriptsPath = "lib/zip/";
+		document.getElementById('files').addEventListener('change', this.filesSelect, false);
+	} else {
+		alert('The File APIs are not fully supported in this browser. Try again with firefox browser : https://www.mozilla.org');
+	}
+}
+
+Loading.prototype.readCovImage = function (coverage, imgElement) {
+	var zipfile = model.filesByCoverage[coverage.id];
+	var adress = "/imgs/peptides/" + coverage.peptide + ".png";
+	var entry = zipfile.entries[adress];
+
+	imgLoader.addImageToLoad(entry, imgElement);
+}
+
+Loading.prototype.loadMonomer = function (monoName, element) {
+	if (imgLoader.urls[monoName] == undefined) {
+		var zipfile = model.files[0];
+		var adress = "/imgs/monomers/" + monoName + ".png";
+		var entry = zipfile.entries[adress];
+
+		imgLoader.addImageToLoad (entry, element, monoName);
+	} else {
+		element.src = imgLoader.urls[monoName];
+	}
+}
+
+Loading.prototype.getEntryFile = function(entry, creationMethod, onend, onprogress) {
+	var writer, zipFileEntry;
+
+	function getData() {
+		entry.getData(writer, function(blob) {
+			var blobURL = creationMethod == "Blob" ? URL.createObjectURL(blob) : zipFileEntry.toURL();
+			onend(blobURL);
+		}, onprogress);
+	}
+
+	if (creationMethod == "Blob") {
+		writer = new zip.BlobWriter();
+		getData();
+	} else {
+		createTempFile(function(fileEntry) {
+			zipFileEntry = fileEntry;
+			writer = new zip.FileWriter(zipFileEntry);
+			getData();
+		});
+	}
+}
+
+
+
+// ---------- Parsing functions ----------
+
+Loading.prototype.useDataLoaded = function (zipfile) {
+	zipfile.callbackCounter = 0;
+	loading.loadJson (zipfile, "matched.json", loading.callbackCounterTester);
+	loading.loadJson (zipfile, "monomers.json", loading.callbackCounterTester);
+	loading.loadJson (zipfile, "residues.json", loading.callbackCounterTester);
+	loading.loadJson (zipfile, "coverage.json", loading.callbackCounterTester);
+	loading.loadJson (zipfile, "suplementaries.json", loading.callbackCounterTester);
+}
+
+Loading.prototype.loadJson = function (zipfile, file, callback) {
+	var entry = zipfile.entries[file];
+
+	var useTxt = function (text) {
+		text = text.split("\n").join('');
+		zipfile.jsons[file] = eval (text);
+		callback (zipfile);
+	};
+
+	entry.getData(new zip.TextWriter(), useTxt);
+}
+
+Loading.prototype.callbackCounterTester = function (zipfile) {
+	zipfile.callbackCounter++;
+	if (zipfile.callbackCounter == 5) {
+		zipfile.callbackCounter = undefined;
+		loading.createCoverages(zipfile, loading.sort);
+		loading.indexJsons(zipfile);
+
+		console.log("\"" + zipfile.name + "\" loaded");
+
+		var zipLoaded = document.createEvent("Event");
+		zipLoaded.initEvent("zipLoaded",true,true);
+		zipLoaded.name = zipfile.name;
+		document.dispatchEvent(zipLoaded)
+	}
+}
+
+Loading.prototype.createCoverages = function (zipfile, callback) {
+	var coverages = zipfile.jsons["coverage.json"];
+	for (var i=0 ; i<coverages.length ; i++) {
+		var idx = coverages[i].id;
+		zipfile.coverages[idx] = coverages[i];
+		zipfile.coveragesIdx.push(idx);
+		model.filesByCoverage[idx] = zipfile;
+	}
+
+	var sup = zipfile.jsons["suplementaries.json"];
+	for (var i=0 ; i<sup.length ; i++) {
+		var idx = sup[i].id;
+		zipfile.coverages[idx].ratio = sup[i].ratio;
+		zipfile.coverages[idx].colors = sup[i].colors;
+	}
+
+	callback(zipfile);
+}
+
+Loading.prototype.indexJsons = function (zipfile) {
+	var monoArray = zipfile.jsons["monomers.json"];
+	for (var i=0 ; i<monoArray.length ; i++) {
+		model.originalMonomers[monoArray[i].desc] = monoArray[i];
+	}
+
+	var resArray = zipfile.jsons["residues.json"];
+	for (var i=0 ; i<resArray.length ; i++) {
+		model.residues[resArray[i].id] = resArray[i];
+	}
+
+	var molsArray = zipfile.jsons["matched.json"];
+	for (var i=0 ; i<molsArray.length ; i++) {
+		model.matchedMols[molsArray[i].id] = molsArray[i];
+	}
+}
+
+
+
+
+// ---------- Sorting functions ----------
+
+Loading.prototype.sort = function (zipfile) {
+	for (var i=0 ; i<zipfile.coveragesIdx.length ; i++) {
+		var idx = zipfile.coveragesIdx[i];
+		var coverage = zipfile.coverages[idx];
+
+		var nbMatchs = coverage.matches.length;
+		var ratio = coverage.ratio;
+
+		if (nbMatchs == 1 && ratio >= loading.ratioMonos) {
+			model.monomers.push(coverage);
+		} else if (nbMatchs >= loading.nbMatchsPep && ratio >= loading.ratioPeps) {
+			model.peptides.push(coverage);
+		} else {
+			model.others.push(coverage);
+		}
+	}
+}
+
+Loading.prototype.reSort = function () {
+	var covs = model.monomers.concat(model.peptides).concat(model.others);
+
+	model.monomers = [];
+	model.peptides = [];
+	model.others = [];
+
+	for (var i=0 ; i<covs.length ; i++) {
+		var coverage = covs[i];
+
+		var nbMatchs = coverage.matches.length;
+		var ratio = coverage.ratio;
+
+		if (nbMatchs == 1 && ratio >= loading.ratioMonos) {
+			model.monomers.push(coverage);
+		} else if (nbMatchs >= loading.nbMatchsPep && ratio >= loading.ratioPeps) {
+			model.peptides.push(coverage);
+		} else {
+			model.others.push(coverage);
+		}
+	}
+
+	for (var i=0 ; i<inter.currentPage.length ; i++)
+		inter.currentPage[i] = null;
+
+	var zipLoaded = document.createEvent("Event");
+	zipLoaded.initEvent("zipLoaded",true,true);
+	zipLoaded.name = "re-sort";
+	document.dispatchEvent(zipLoaded);
+}
+
+
+
+
+
+var loading = new Loading();
+loading.init();

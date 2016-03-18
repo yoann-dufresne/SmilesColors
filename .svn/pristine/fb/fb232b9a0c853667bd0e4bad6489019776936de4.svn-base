@@ -1,0 +1,43 @@
+
+// File API verifications
+// Check for the various File API support.
+if (window.File && window.FileReader && window.FileList && window.Blob) {
+	// Great success! All the File APIs are supported.
+} else {
+	alert('The File APIs are not fully supported in this browser.');
+}
+
+
+
+// Read file and store it into a blob object
+var blob;
+zip.workerScriptsPath = "lib/zip/";
+function handleFileSelect(evt) {
+	var files = evt.target.files; // FileList object
+	blob = files[0];
+	console.log("Blob loaded");
+
+	// Read zip file
+	zip.createReader(new zip.BlobReader(blob), function(reader) {
+		reader.getEntries(function(entries) {
+			for (var i=0 ; i<entries.length ; i++) {
+				var entry = entries[i];
+				console.log(entry.filename)
+				/*/ get first entry content as text
+				entries[1].getData(new zip.TextWriter(), function(text) {
+					// text contains the entry data as a String
+					console.log(text);
+					// close the zip reader
+					reader.close(function() {
+						// onclose callback
+					});
+				}, function(current, total) {
+				// onprogress callback
+				});*/
+			}
+		});
+	}, function(error) {
+	  // onerror callback
+	});
+}
+document.getElementById('files').addEventListener('change', handleFileSelect, false);

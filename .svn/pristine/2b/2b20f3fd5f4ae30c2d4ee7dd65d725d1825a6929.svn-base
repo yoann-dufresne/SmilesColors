@@ -1,0 +1,21 @@
+
+function Interface () {};
+
+Interface.prototype.init = function () {
+	this.initAddButton();
+}
+
+Interface.prototype.initAddButton = function () {
+	var addZipPanel = document.getElementById("addZip");
+	
+	document.getElementById("add").onclick = function () {
+		addZipPanel.style.visibility="visible";
+	}
+
+	document.getElementById("okAdd").onclick = function () {
+		addZipPanel.style.visibility="hidden";
+	}
+}
+
+var inter = new Interface();
+inter.init();

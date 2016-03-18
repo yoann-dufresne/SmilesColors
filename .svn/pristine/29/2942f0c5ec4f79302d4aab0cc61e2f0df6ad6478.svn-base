@@ -1,0 +1,550 @@
+
+function Interface () {
+	this.nbPages = 0;
+	this.currentPage = {};
+};
+
+// ---------- Init functions ----------
+
+Interface.prototype.init = function () {
+	this.initAddButton();
+	this.initTabs();
+	this.mpp = 20; // Molecule Per Page
+}
+
+Interface.prototype.initAddButton = function () {
+	var addZipPanel = document.getElementById("addZip");
+	
+	document.getElementById("add").onclick = function () {
+		addZipPanel.style.visibility="visible";
+	}
+
+	document.getElementById("okAdd").onclick = function () {
+		addZipPanel.style.visibility="hidden";
+	}
+}
+
+var activeTab = function (event) {
+	var body = inter.tabs[0].parentNode;
+	var interf = inter;
+	for (var i=0 ; i<inter.tabs.length ; i++) {
+		inter.tabs[i].style.display = "none";
+	}
+	inter.tabs[event.target.id].style.display = "block";
+};
+
+Interface.prototype.initTabs = function () {
+	this.tabs = document.getElementsByClassName("tab");
+	this.tabsButtons = document.getElementsByClassName("tabButton");
+
+	for (var i=0 ; i<this.tabs.length ; i++) {
+		var tab = this.tabs[i];
+		this.tabsButtons[i].onclick = activeTab;
+
+		if (tab.id != "peptides")
+			tab.style.display = "none";
+	}
+}
+
+
+
+// ---------- Pages functions ----------
+
+Interface.prototype.pagesHandler = function () {
+	model.peptides.sort(model.sortByCoverage);
+	inter.createPages ("peptides", model.peptides);
+	model.monomers.sort(model.sortByCoverage);
+	inter.createPages ("monomers", model.monomers);
+	model.others.sort(model.sortByCoverage);
+	inter.createPages ("others", model.others);
+}
+
+Interface.prototype.pageButtonHandler = function (event) {
+	var page = event.target.innerHTML;
+	var id = event.target.parentNode.parentNode.id;
+	inter.setCurrentPage(id, page);
+}
+
+Interface.prototype.createPages = function (id, coverages) {
+	var nbPages = 1 + Math.floor(coverages.length / this.mpp);
+
+	if (nbPages > 1) {
+		var html = "";
+		for (var i=1 ; i<=nbPages ; i++) {
+			html += "<li class=\"" + id + "-" + i + "\">" + i + "</li>";
+		}
+
+		var divs = document.querySelectorAll("#" + id + " .pages");
+		for (var i=0 ; i<divs.length ; i++)
+			divs[i].innerHTML = html;
+
+		for (var i=0 ; i<divs.length ; i++) {
+			var children = divs[i].children;
+			for (var j=0 ; j<children.length ; j++)
+				children[j].onclick = inter.pageButtonHandler;
+		}
+
+		var current = inter.currentPage[id];
+		if (current == null || current > nbPages)
+			inter.setCurrentPage(id, 1);
+	} else {
+		inter.setCurrentPage(id, 1);
+	}
+}
+
+Interface.prototype.setCurrentPage = function (id, page) {
+	window.scrollTo(0,0);
+	inter.currentPage[id] = page;
+	var lis = document.querySelectorAll("#" + id + " .currentPage");
+	for (var i=0 ; i<lis.length ; i++) {
+		lis[i].classList.remove("currentPage");
+	}
+
+	var lis = document.querySelectorAll("#" + id + " ." + id + "-" + page);
+	for (var i=0 ; i<lis.length ; i++) {
+		lis[i].classList.add("currentPage");
+	}
+
+	var list;
+	if (id == "peptides")
+		list = model.peptides;
+	else if (id == "monomers")
+		list = model.monomers;
+	else
+		list = model.others;
+
+	var initialIdx = (page-1) * inter.mpp;
+	var covs = new Array();
+	for (var i=initialIdx ; i<(initialIdx+inter.mpp) && i<list.length ; i++)
+		covs.push(list[i]);
+	//console.log(covs.length);
+
+	inter.printResults(id, covs);
+}
+
+
+
+// ---------- Filling functions ----------
+
+Interface.prototype.printResults = function (id, coverages) {
+	var divData = document.querySelector("#" + id + " .data ");
+	
+	// Cleaning previous data
+	for (var j = 0; j < divData.children.length; j++) 
+		divData.removeChild(divData.children[j]);
+
+	// Filling with new data
+	for (var i = 0; i < coverages.length; i++) {
+		var pepDiv = document.createElement("div");
+		inter.printResult (pepDiv, coverages[i]);
+		pepDiv.classList.add("coverage");
+		divData.appendChild(pepDiv);
+	}
+}
+
+Interface.prototype.printResult = function (div, coverage) {
+	var peptide = document.createElement("div");
+	peptide.classList.add("peptide");
+	div.appendChild(peptide);
+	
+	this.printPeptideDiv (peptide, coverage);
+	this.printMonomerList (div, coverage.graph.monos);
+}
+
+Interface.prototype.printPeptideDiv = function (div, coverage) {
+	// Coverage image.
+	var imgElement = document.createElement('img');
+	imgElement.classList.add("covImage");
+	loading.readCovImage(coverage, imgElement);
+	div.appendChild(imgElement);
+
+	// Coverage informations
+	var infos = document.createElement("div");
+
+	var molName = document.createElement("p");
+	molName.innerHTML = model.matchedMols[coverage.peptide].name;
+	infos.appendChild(molName);
+
+	var cov = document.createElement('p');
+	cov.innerHTML = "Atomic coverage: " + coverage.ratio;
+	infos.appendChild(cov);
+
+	div.appendChild(infos);
+}
+
+Interface.prototype.printMonomerList = function (div, monomerFamilies, colors) {
+	var title = document.createElement("p");
+	title.innerHTML = "Monomers :";
+	div.appendChild(title);
+
+	var counts = {};
+	for (var i=0 ; i<monomerFamilies.length ; i++)
+		if (counts[monomerFamilies[i]] == undefined) {
+			counts[monomerFamilies[i]] = 1;
+		} else {
+			counts[monomerFamilies[i]] += 1;
+		}
+
+	var list = document.createElement("div");
+	list.classList.add("list");
+	for (var key in counts)
+		if (key != "?")
+			this.printMonomer (list, {"mono":key, "val":counts[key]});
+	div.appendChild(list);
+}
+
+Interface.prototype.printMonomer = function (div, monomerCount) {
+	var monoDiv = document.createElement ("div");
+	monoDiv.classList.add("monomer");
+
+	var name = document.createElement("p");
+	name.innerHTML = monomerCount["val"] + " " + monomerCount["mono"].split(",").join(" or ");
+	monoDiv.appendChild(name);
+
+	var img = document.createElement("img");
+	img.classList.add("miniImg");
+	var monoName = monomerCount["mono"].split(",")[0];
+	
+	loading.loadMonomer(monoName, img);
+	monoDiv.appendChild(img);
+
+	div.appendChild (monoDiv);
+}
+
+
+// ---------- Stats functions ----------
+
+Interface.prototype.statsHandler = function () {
+	var div = document.querySelector("#stats .data");
+
+	if (div.children.length == 1) {
+		div.removeChild(div.children[0]);
+
+		var proportions = document.createElement("div");
+		proportions.id = "proportions";
+		proportions.classList.add("pannels");
+		div.appendChild(proportions);
+		inter.createProportionsStats(proportions);
+
+		var divRight = document.createElement("div");
+		divRight.id = "right";
+		div.appendChild(divRight);
+
+		var general = document.createElement("div");
+		general.id = "general";
+		general.classList.add("pannels");
+		divRight.appendChild(general);
+		inter.createGeneralStats(general);
+
+		var peptides = document.createElement("div");
+		peptides.id = "peptidesCharts";
+		peptides.classList.add("pannels");
+		divRight.appendChild(peptides);
+		inter.createPeptidesStats(peptides);
+
+		var parameters = document.createElement("div");
+		parameters.id = "parameters";
+		parameters.classList.add("pannels");
+		div.appendChild(parameters);
+		inter.createParametersStats(parameters);
+	} else {
+		inter.updateProportionsStats();
+		inter.updateGeneralStats();
+		inter.updatePeptidesStats();
+	}
+}
+
+Interface.prototype.createProportionsStats = function (div) {
+	var title = document.createElement("h1");
+	title.innerHTML = "Proportions";
+	div.appendChild(title);
+
+	var canvas = document.createElement("canvas");
+	canvas.height = 350;
+	canvas.width = 330;
+	canvas.id = "proportionsChart";
+	div.appendChild(canvas);
+
+	var data = [
+		{
+			value: model.peptides.length,
+			color:"#F7464A",
+			highlight: "#FF5A5E",
+			label: "Peptides"
+		},
+		{
+			value: model.monomers.length,
+			color: "#46BFBD",
+			highlight: "#5AD3D1",
+			label: "Monomers"
+		},
+		{
+			value: model.others.length,
+			color: "#FDB45C",
+			highlight: "#FFC870",
+			label: "Others"
+		}
+	];
+
+	var options = {
+		//Boolean - Whether we should show a stroke on each segment
+		segmentShowStroke : true,
+		//String - The colour of each segment stroke
+		segmentStrokeColor : "#fff",
+		//Number - The width of each segment stroke
+		segmentStrokeWidth : 2,
+		//Number - The percentage of the chart that we cut out of the middle
+		percentageInnerCutout : 40, // This is 0 for Pie charts
+		animateRotate : false
+	}
+
+	inter.chartProportions = new Chart(canvas.getContext("2d")).Doughnut(data,options);
+
+	var legend = document.createElement("ul");
+	legend.innerHTML = "";
+	var segments = inter.chartProportions.segments;
+	for (var i=0; i<segments.length; i++){
+		var item = "<li><span class=\"sticker\" style=\"background-color:" + segments[i].fillColor + "\"></span>";
+		if(segments[i].label)
+			item += "<span id='chartLabel_" + segments[i].label + "'></span>";
+		item += "</li>";
+		legend.innerHTML += item;
+	}
+	div.appendChild(legend);
+
+	this.updateProportionsStats ();
+}
+
+Interface.prototype.updateProportionsStats = function () {
+	var chart = inter.chartProportions;
+	chart.segments[0].value = model.peptides.length;
+	var label = document.getElementById("chartLabel_" + chart.segments[0].label);
+	label.innerHTML = chart.segments[0].label + " : " + model.peptides.length;
+
+	chart.segments[1].value = model.monomers.length;
+	label = document.getElementById("chartLabel_" + chart.segments[1].label);
+	label.innerHTML = chart.segments[1].label + " : " + model.monomers.length;
+
+	chart.segments[2].value = model.others.length;
+	label = document.getElementById("chartLabel_" + chart.segments[2].label);
+	label.innerHTML = chart.segments[2].label + " : " + model.others.length;
+
+	chart.update();
+}
+
+
+
+Interface.prototype.createGeneralStats = function (div) {
+	var title = document.createElement("h1");
+	title.innerHTML = "Average coverages";
+	div.appendChild(title);
+
+	inter.generalUpdatableElements = new Array();
+	var array = document.createElement("table");
+	array.innerHTML = "<tr class='title'><td>Peptides</td><td>Monomers</td><td>Others</td></tr>";
+	array.innerHTML += "<tr><td colspan='3'></td></tr>";
+	array.innerHTML += "<tr><td></td><td></td><td></td></tr>";
+	array.innerHTML += "<tr><td colspan='2'></td><td class=\"hideCell\"></td></tr>";
+	div.appendChild(array);
+
+	inter.generalUpdatableElements.push(array.children[1].children[0].children[0]);
+	inter.generalUpdatableElements.push(array.children[2].children[0].children[0]);
+	inter.generalUpdatableElements.push(array.children[2].children[0].children[1]);
+	inter.generalUpdatableElements.push(array.children[2].children[0].children[2]);
+	inter.generalUpdatableElements.push(array.children[3].children[0].children[0]);
+	inter.updateGeneralStats();
+}
+
+Interface.prototype.updateGeneralStats = function () {
+	var cells =  inter.generalUpdatableElements;
+
+	cells[1].innerHTML = model.meanRatio (model.peptides);
+	cells[2].innerHTML = model.meanRatio (model.monomers);
+	cells[3].innerHTML = model.meanRatio (model.others);
+
+	var covs = model.monomers.concat(model.peptides);
+	cells[4].innerHTML = model.meanRatio (covs);
+
+	covs = covs.concat(model.others);
+	cells[0].innerHTML = model.meanRatio (covs);
+}
+
+
+
+
+Interface.prototype.createPeptidesStats = function (div) {
+	var title = document.createElement("h1");
+	title.innerHTML = "Peptides coverages";
+	div.appendChild(title);
+
+	var nbMonomers = document.createElement("canvas");
+	nbMonomers.id = "nbChart";
+	nbMonomers.height = 270;
+	nbMonomers.width = 570;
+	div.appendChild(nbMonomers);
+
+	var data = {
+		labels: ["2", "3", "4-5", "6-7", "8+"],
+		datasets: [
+			{
+				label: "Total coverages",
+				fillColor: "#34393E",
+				strokeColor: "#34393E",
+				data: [0, 0, 0, 0, 0]
+			},
+			{
+				label: "70-89% coverages",
+				fillColor: "#FFDA8C",
+				strokeColor: "#FFDA8C",
+				data: [0, 0, 0, 0, 0]
+			},
+			{
+				label: "90-99% coverages",
+				fillColor: "#8CC6D7",
+				strokeColor: "#8CC6D7",
+				data: [0, 0, 0, 0, 0]
+			},
+			{
+				label: "100% coverages",
+				fillColor: "#B1221C",
+				strokeColor: "#B1221C",
+				data: [0, 0, 0, 0, 0]
+			}
+		]
+	}
+	var options = {};
+	inter.nbMonomersChart = new Chart(nbMonomers.getContext("2d")).Bar(data, options);
+
+	var legend = document.createElement("ul");
+	legend.innerHTML = "";
+	var datasets = inter.nbMonomersChart.datasets;
+	for (var i=0; i<datasets.length; i++){
+		var item = "<li><span class=\"sticker\" style=\"background-color:"
+		 + inter.nbMonomersChart.datasets[i].fillColor + "\"></span>";
+		if(datasets[i].label)
+			item += "<span>" + inter.nbMonomersChart.datasets[i].label + "</span>";
+		item += "</li>";
+		legend.innerHTML += item;
+	}
+	div.appendChild(legend);
+
+	inter.updatePeptidesStats();
+}
+
+Interface.prototype.updatePeptidesStats = function () {
+	var table = this.countByMonomers (model.peptides);
+	for (var i=0 ; i<table.length ; i++)
+		for (var j=0 ; j<table[i].length ; j++)
+			inter.nbMonomersChart.datasets[i].bars[j].value = table[i][j];
+	inter.nbMonomersChart.update();
+}
+
+Interface.prototype.createParametersStats = function (div) {
+	var label = document.createElement("p");
+	label.innerHTML = "Caracteristics to be a peptide :";
+	div.appendChild (label);
+
+	label = document.createElement("label");
+	label.innerHTML = "Coverage ratio";
+	div.appendChild (label);
+
+	var ratio = document.createElement("input");
+	ratio.type = "text";
+	ratio.value = "0.7";
+	div.appendChild(ratio);
+	inter.ratioPeps = ratio;
+
+
+	label = document.createElement("label");
+	label.innerHTML = "Monomer number";
+	div.appendChild (label);
+
+	var nbMonos = document.createElement("input");
+	nbMonos.type = "text";
+	nbMonos.value = "2";
+	div.appendChild(nbMonos);
+	inter.nbMonosPeps = nbMonos;
+
+
+
+	label = document.createElement("p");
+	label.innerHTML = "Caracteristics to be a monomer :";
+	div.appendChild (label);
+
+	label = document.createElement("label");
+	label.innerHTML = "Coverage ratio";
+	div.appendChild (label);
+
+	ratio = document.createElement("input");
+	ratio.type = "text";
+	ratio.value = "0.9";
+	div.appendChild(ratio);
+	inter.ratioMonos = ratio;
+
+
+
+	var button = document.createElement("button");
+	button.innerHTML = "Change Parameters";
+	div.appendChild(button);
+
+	button.onclick = function () {
+		loading.ratioMonos = inter.ratioMonos.value;
+		loading.ratioPeps = inter.ratioPeps.value;
+		loading.nbMatchsPep = inter.nbMonosPeps.value;
+
+		loading.reSort();
+	}
+}
+
+Interface.prototype.countByMonomers = function (covs) {
+	var count =
+	[[0,0,0,0,0],
+	 [0,0,0,0,0],
+	 [0,0,0,0,0],
+	 [0,0,0,0,0]];
+
+	for (var i=0 ; i<covs.length ; i++)
+		switch(covs[i].matches.length) {
+			case 2:
+				count[0][0] += 1;
+				count[this.ratioToLineNumber(covs[i].ratio)][0] += 1;
+				break;
+			case 3:
+				count[0][1] += 1;
+				count[this.ratioToLineNumber(covs[i].ratio)][1] += 1;
+				break;
+			case 4:
+			case 5:
+				count[0][2] += 1;
+				count[this.ratioToLineNumber(covs[i].ratio)][2] += 1;
+				break;
+			case 6:
+			case 7:
+				count[0][3] += 1;
+				count[this.ratioToLineNumber(covs[i].ratio)][3] += 1;
+				break;
+			default:
+				count[0][4] += 1;
+				count[this.ratioToLineNumber(covs[i].ratio)][4] += 1;
+		}
+
+	return count;
+}
+
+Interface.prototype.ratioToLineNumber = function (ratio) {
+	if (ratio < 0.9)
+		return 1;
+	else if (ratio < 1.0)
+		return 2;
+	else
+		return 3;
+}
+
+
+
+var inter = new Interface();
+inter.init();
+document.addEventListener("zipLoaded",inter.pagesHandler,false);
+document.addEventListener("zipLoaded",inter.statsHandler,false);
+
+

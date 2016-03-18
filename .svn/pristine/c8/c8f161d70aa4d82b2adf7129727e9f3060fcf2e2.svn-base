@@ -1,0 +1,132 @@
+
+function Interface () {
+	this.nbPages = 0;
+	this.currentPage = {};
+};
+
+// ---------- Init functions ----------
+
+Interface.prototype.init = function () {
+	this.initAddButton();
+	this.initTabs();
+	this.mpp = 20; // Molecule Per Page
+}
+
+Interface.prototype.initAddButton = function () {
+	var addZipPanel = document.getElementById("addZip");
+	
+	document.getElementById("add").onclick = function () {
+		addZipPanel.style.visibility="visible";
+	}
+
+	document.getElementById("okAdd").onclick = function () {
+		addZipPanel.style.visibility="hidden";
+	}
+}
+
+var activeTab = function (event) {
+	var body = inter.tabs[0].parentNode;
+	var interf = inter;
+	for (var i=0 ; i<inter.tabs.length ; i++) {
+		inter.tabs[i].style.display = "none";
+	}
+	inter.tabs[event.target.id].style.display = "block";
+};
+
+Interface.prototype.initTabs = function () {
+	this.tabs = document.getElementsByClassName("tab");
+	this.tabsButtons = document.getElementsByClassName("tabButton");
+
+	for (var i=0 ; i<this.tabs.length ; i++) {
+		var tab = this.tabs[i];
+		this.tabsButtons[i].onclick = activeTab;
+
+		if (tab.id != "peptides")
+			tab.style.display = "none";
+	}
+}
+
+
+
+// ---------- Pages functions ----------
+
+Interface.prototype.pagesHandler = function () {
+	inter.createPages ("peptides", model.peptides);
+	inter.createPages ("monomers", model.monomers);
+	inter.createPages ("others", model.others);
+}
+
+Interface.prototype.pageButtonHandler = function (event) {
+	var page = event.target.innerHTML;
+	var id = event.target.parentNode.parentNode.id;
+	inter.setCurrentPage(id, page);
+}
+
+Interface.prototype.createPages = function (id, coverages) {
+	var nbPages = 1 + Math.floor(coverages.length / this.mpp);
+
+	if (nbPages > 1) {
+		var html = "";
+		for (var i=1 ; i<=nbPages ; i++) {
+			html += "<li class=\"" + id + "-" + i + "\">" + i + "</li>";
+		}
+
+		var divs = document.querySelectorAll("#" + id + " .pages");
+		for (var i=0 ; i<divs.length ; i++)
+			divs[i].innerHTML = html;
+
+		for (var i=0 ; i<divs.length ; i++) {
+			var children = divs[i].children;
+			for (var j=0 ; j<children.length ; j++)
+				children[j].onclick = inter.pageButtonHandler;
+		}
+
+		var current = inter.currentPage[id];
+		if (current == null || current > nbPages)
+			inter.setCurrentPage(id, 1);
+	}
+}
+
+Interface.prototype.setCurrentPage = function (id, page) {
+	inter.currentPage[id] = page;
+	var lis = document.querySelectorAll("#" + id + " .currentPage");
+	for (var i=0 ; i<lis.length ; i++) {
+		lis[i].classList.remove("currentPage");
+	}
+
+	var lis = document.querySelectorAll("#" + id + " ." + id + "-" + page);
+	for (var i=0 ; i<lis.length ; i++) {
+		lis[i].classList.add("currentPage");
+	}
+
+	var list;
+	if (id == "peptides")
+		list = model.peptides;
+	else if (id == "monomers")
+		list = model.monomers;
+	else
+		list = model.others;
+
+	var initialIdx = (page-1) * inter.mpp;
+	var covs = new Array();
+	for (var i=initialIdx ; i<(initialIdx+inter.mpp) && i<list.length ; i++)
+		covs.push(list[i]);
+	//console.log(covs.length);
+
+	inter.printResults(id, covs);
+}
+
+
+
+// ---------- Filling functions ----------
+
+Interface.prototype.printResults = function (id, coverages) {
+
+}
+
+
+
+
+var inter = new Interface();
+inter.init();
+document.addEventListener("zipLoaded",inter.pagesHandler,false);

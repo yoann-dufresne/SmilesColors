@@ -1,0 +1,6 @@
+
+// Read file and store it into a blob object
+var blob = ;
+
+// Read zip file
+//zip.createReader(new zip.BlobReader(blob), callback[, onerror]);

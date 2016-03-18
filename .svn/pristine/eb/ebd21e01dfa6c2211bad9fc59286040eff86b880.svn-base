@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Results</title>
+    <link rel="stylesheet" type="text/css" href="style.css" media="screen" />
+    <link rel="icon" type="image/x-icon" href="imgs/icon.ico">
+  </head>
+
+  <body>
+    <ul id="menu">
+      <li id="add">+</li>
+      <li>Monomers</li>
+      <li>Peptides</li>
+      <li>Others</li>
+      <li>Stats</li>
+    </ul>
+
+    <div id="addZip">
+      <p>Add results zip files</p>
+      <input type="file" id="files" name="files[]" multiple accept=".zip"/>
+      <div id="fileslist"></div>
+      <button id="okAdd">ok</button>
+    </div>
+
+    <!--input type="file" id="files" name="files[]" multiple accept=".zip"/-->
+
+    <div class='coverage'>
+      <div class='peptide'>
+        <div class='covImage'></div>
+        <!--image src='peptides/anguibactin.png' class='covImage' /-->
+        <div>
+          <p>anguibactin</p>
+          <p>Atomic coverage : 0.25</p>
+        </div>
+      </div>
+
+
+      <p>Correct monomers</p>
+
+      <div class='list' id='correct'>
+
+      </div>
+
+
+      <p>Incorrect monomers</p>
+
+      <div class='list' id='incorrect'>
+        <div class='monomer'>
+          <p>1 Cys</p>
+          <div class='colors'>
+            <div class='color' style='background-color:rgb(255,0,0)'>
+            </div>
+          </div>
+          <div class='miniImg'></div>
+          <!--img src='monomers/Cys.png' class='miniImg' /-->
+        </div>
+      </div>
+
+
+      <p>Not found monomers</p>
+
+      <div class='list' id='notFound'>
+        <div class='monomer'>
+          <p>1 DHPT</p>
+      	  <div class='miniImg'></div>
+          <!--img src='monomers/DHPT.png' class='miniImg' /-->
+        </div>
+        <div class='monomer'>
+          <p>1 N-OH-Hta</p>
+          <div class='miniImg'></div>
+      	  <!--img src='monomers/N-OH-Hta.png' class='miniImg' /-->
+        </div>
+      </div>
+
+    </div>
+  </body>
+
+  <script src="lib/zip/zip.js"></script>
+  <script src="js/Model.js"></script>
+  <script src="js/Interface.js"></script>
+  <script src="js/Loading.js"></script>
+</html>

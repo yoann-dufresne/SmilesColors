@@ -1,0 +1,101 @@
+<html>
+	<body id="toto">
+		<input type="file" id="files" name="files[]" multiple accept=".zip"/>
+		<button id="but">Go</button>
+	</body>
+	<script src="lib/zip/zip.js"></script>
+	<script src="lib/zip/zip-ext.js"></script>
+	<script>
+		window.onload = function () {
+			if (window.File && window.FileReader && window.FileList && window.Blob) {
+				zip.workerScriptsPath = "lib/zip/";
+				document.getElementById('files').addEventListener('change', filesSelect, false);
+			} else {
+				alert('The File APIs are not fully supported in this browser. Try again with firefox browser : https://www.mozilla.org');
+			}
+		}
+
+		var filesSelect = function (evt) {
+			var file = evt.target.files[0];
+			readZip(file);
+		};
+
+		var readZip = function (blob) {
+			
+			var entriesUser = function(entries) {
+				window.entries = entries;
+				window.idxEntries = 0;
+			}
+
+			var readerF = function(reader) {
+				reader.getEntries(entriesUser);
+			}
+			var errorF = function(error) {};
+
+			// Read zip files
+			zip.createReader(
+				new zip.BlobReader(blob),
+				readerF,
+				errorF
+			);
+		}
+
+		var useFileLoaded = function (url) {
+			var img = document.createElement("img");
+			img.src = url;
+			document.getElementById("toto").appendChild(img);
+			//alert (url);
+		}
+
+		var getEntryFile = function(entry, creationMethod, onend, onprogress) {
+			var writer, zipFileEntry;
+
+			function getData() {
+				entry.getData(writer, function(blob) {
+					var blobURL = creationMethod == "Blob" ? URL.createObjectURL(blob) : zipFileEntry.toURL();
+					console.log(blobURL);
+					onend(blobURL);
+				}, onprogress);
+			}
+
+			if (creationMethod == "Blob") {
+				writer = new zip.BlobWriter();
+				getData();
+			} else {
+				createTempFile(entry.filename, function(fileEntry) {
+					zipFileEntry = fileEntry;
+					writer = new zip.FileWriter(zipFileEntry);
+					getData();
+				});
+			}
+		}
+
+		var requestFileSystem = window.webkitRequestFileSystem || window.mozRequestFileSystem || window.requestFileSystem;
+
+		var createTempFile = function (name, callback) {
+			requestFileSystem(TEMPORARY, 4 * 1024 * 1024 * 1024, function(filesystem) {
+				function create() {
+					filesystem.root.getFile(name, {
+						create : true
+					}, function(zipFile) {
+						callback(zipFile);
+					});
+				}
+
+				filesystem.root.getFile(name, null, function(entry) {
+					entry.remove(create, create);
+				}, create);
+			});
+		}
+
+		document.getElementById("but").onclick = function () {
+			var idx = window.idxEntries;
+			for (var i=10*idx; i<10*(idx+1) && i<window.entries.length ; i++) {
+				var entry = window.entries[i];
+				if (entry.filename.slice(0, 5) == "/imgs")
+					getEntryFile(entry, "Blob", useFileLoaded, function () {});
+			}
+			window.idxEntries += 1;
+		}
+	</script>
+</html>

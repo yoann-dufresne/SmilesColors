@@ -1,0 +1,55 @@
+
+function Interface () {};
+
+// ---------- Init functions ----------
+
+Interface.prototype.init = function () {
+	this.initAddButton();
+	this.initTabs();
+}
+
+Interface.prototype.initAddButton = function () {
+	var addZipPanel = document.getElementById("addZip");
+	
+	document.getElementById("add").onclick = function () {
+		addZipPanel.style.visibility="visible";
+	}
+
+	document.getElementById("okAdd").onclick = function () {
+		addZipPanel.style.visibility="hidden";
+	}
+}
+
+var activeTab = function (event) {
+	var body = inter.tabs[0].parentNode;
+	var interf = inter;
+	for (var i=0 ; i<inter.tabs.length ; i++) {
+		inter.tabs[i].style.display = "none";
+	}
+	inter.tabs[event.target.id].style.display = "block";
+};
+
+Interface.prototype.initTabs = function () {
+	this.tabs = document.getElementsByClassName("tab");
+	this.tabsButtons = document.getElementsByClassName("tabButton");
+
+	for (var i=0 ; i<this.tabs.length ; i++) {
+		var tab = this.tabs[i];
+		this.tabsButtons[i].onclick = activeTab;
+
+		if (tab.id != "peptides")
+			tab.style.display = "none";
+	}
+}
+
+
+
+// ---------- Filling functions ----------
+
+//document.addEventListener("zipLoaded",myEventHandler,false);
+
+
+
+
+var inter = new Interface();
+inter.init();

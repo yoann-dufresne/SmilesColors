@@ -1,0 +1,109 @@
+
+function Loading () {};
+
+// ---------- Loading functions ----------
+
+Loading.prototype.readZip = function (blob, callback) {
+	var zipfile = new ZipFile(blob.name);
+	model.files.push(zipfile);
+	
+	var entriesAdder = function(entries) {
+		for (var i=0 ; i<entries.length ; i++) {
+			var entry = entries[i];
+			zipfile.addEntry(entry);
+		}
+		callback(zipfile);
+	}
+
+	var readerF = function(reader) {
+		reader.getEntries(entriesAdder);
+	}
+	var errorF = function(error) {};
+
+	// Read zip files
+	zip.createReader(
+		new zip.BlobReader(blob),
+		readerF,
+		errorF
+	);
+}
+
+Loading.prototype.filesSelect = function (evt) {
+	var files = evt.target.files;
+	var textarea = document.getElementById("fileslist").innerHTML;
+	for (var i=0 ; i<files.length ; i++) {
+		var zipfile = loading.readZip(files[i], loading.useDataLoaded);
+		textarea += "<p>" + files[i].name + "</p>\n";
+	}
+	document.getElementById("fileslist").innerHTML = textarea;
+};
+
+Loading.prototype.init = function () {
+	if (window.File && window.FileReader && window.FileList && window.Blob) {
+		zip.workerScriptsPath = "lib/zip/";
+		document.getElementById('files').addEventListener('change', this.filesSelect, false);
+	} else {
+		alert('The File APIs are not fully supported in this browser. Try again with firefox browser : https://www.mozilla.org');
+	}
+}
+
+
+
+// ---------- Parsing functions ----------
+
+Loading.prototype.useDataLoaded = function (zipfile) {
+	loading.loadJson (zipfile, "matched.json", callbackCounterTester);
+	loading.loadJson (zipfile, "monomers.json", callbackCounterTester);
+	loading.loadJson (zipfile, "residues.json", callbackCounterTester);
+
+	loading.loadJson (zipfile, "coverage.json", callbackCounterTester);
+	var coverages = zipfile.jsons["coverage.json"];
+	for (var i=0 ; i<coverages.length ; i++) {
+		var idx = coverages[i].id;
+		zipfile.coverages[idx] = coverages[i];
+		zipfile.coveragesIdx.push(idx);
+	}
+
+	loading.loadJson (zipfile, "suplementaries.json", callbackCounterTester);
+	var sup = zipfile.jsons["suplementaries.json"];
+	for (var i=0 ; i<sup.length ; i++) {
+		var idx = sup[i].id;
+		zipfile.coverages[idx].ratio = sup[i].ratio;
+		zipfile.coverages[idx].colors = sup[i].colors;
+	}
+}
+
+Loading.prototype.loadJson = function (zipFile, file, callback) {
+	var entry = zipFile.entries[file];
+
+	var useTxt = function (text) {
+		text = text.split("\n").join('');
+		zipFile.jsons[file] = eval (text);
+		callback ();
+	};
+
+	entry.getData(new zip.TextWriter(), useTxt);
+}
+
+var callbackCounter = 0;
+var callbackCounterTester = function () {
+	callbackCounter++;
+	/*if (callbackCounter == 5)
+		loading.sort (model.jsons["suplementaries.json"]);*/
+}
+
+
+
+
+// ---------- Sorting functions ----------
+
+Loading.prototype.sort = new function (coverages) {
+
+}
+
+
+
+
+
+var loading = new Loading();
+loading.init();

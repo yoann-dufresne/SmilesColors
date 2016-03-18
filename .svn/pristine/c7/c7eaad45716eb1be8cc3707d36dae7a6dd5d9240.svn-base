@@ -1,0 +1,245 @@
+
+function Interface () {
+	this.nbPages = 0;
+	this.currentPage = {};
+};
+
+// ---------- Init functions ----------
+
+Interface.prototype.init = function () {
+	this.initAddButton();
+	this.initTabs();
+	this.mpp = 20; // Molecule Per Page
+}
+
+Interface.prototype.initAddButton = function () {
+	var addZipPanel = document.getElementById("addZip");
+	
+	document.getElementById("add").onclick = function () {
+		addZipPanel.style.visibility="visible";
+	}
+
+	document.getElementById("okAdd").onclick = function () {
+		addZipPanel.style.visibility="hidden";
+	}
+}
+
+var activeTab = function (event) {
+	var body = inter.tabs[0].parentNode;
+	var interf = inter;
+	for (var i=0 ; i<inter.tabs.length ; i++) {
+		inter.tabs[i].style.display = "none";
+	}
+	inter.tabs[event.target.id].style.display = "block";
+};
+
+Interface.prototype.initTabs = function () {
+	this.tabs = document.getElementsByClassName("tab");
+	this.tabsButtons = document.getElementsByClassName("tabButton");
+
+	for (var i=0 ; i<this.tabs.length ; i++) {
+		var tab = this.tabs[i];
+		this.tabsButtons[i].onclick = activeTab;
+
+		if (tab.id != "peptides")
+			tab.style.display = "none";
+	}
+}
+
+
+
+// ---------- Pages functions ----------
+
+Interface.prototype.pagesHandler = function () {
+	inter.createPages ("peptides", model.peptides);
+	inter.createPages ("monomers", model.monomers);
+	inter.createPages ("others", model.others);
+}
+
+Interface.prototype.pageButtonHandler = function (event) {
+	var page = event.target.innerHTML;
+	var id = event.target.parentNode.parentNode.id;
+	inter.setCurrentPage(id, page);
+}
+
+Interface.prototype.createPages = function (id, coverages) {
+	var nbPages = 1 + Math.floor(coverages.length / this.mpp);
+
+	if (nbPages > 1) {
+		var html = "";
+		for (var i=1 ; i<=nbPages ; i++) {
+			html += "<li class=\"" + id + "-" + i + "\">" + i + "</li>";
+		}
+
+		var divs = document.querySelectorAll("#" + id + " .pages");
+		for (var i=0 ; i<divs.length ; i++)
+			divs[i].innerHTML = html;
+
+		for (var i=0 ; i<divs.length ; i++) {
+			var children = divs[i].children;
+			for (var j=0 ; j<children.length ; j++)
+				children[j].onclick = inter.pageButtonHandler;
+		}
+
+		var current = inter.currentPage[id];
+		if (current == null || current > nbPages)
+			inter.setCurrentPage(id, 1);
+	}
+}
+
+Interface.prototype.setCurrentPage = function (id, page) {
+	inter.currentPage[id] = page;
+	var lis = document.querySelectorAll("#" + id + " .currentPage");
+	for (var i=0 ; i<lis.length ; i++) {
+		lis[i].classList.remove("currentPage");
+	}
+
+	var lis = document.querySelectorAll("#" + id + " ." + id + "-" + page);
+	for (var i=0 ; i<lis.length ; i++) {
+		lis[i].classList.add("currentPage");
+	}
+
+	var list;
+	if (id == "peptides")
+		list = model.peptides;
+	else if (id == "monomers")
+		list = model.monomers;
+	else
+		list = model.others;
+
+	var initialIdx = (page-1) * inter.mpp;
+	var covs = new Array();
+	for (var i=initialIdx ; i<(initialIdx+inter.mpp) && i<list.length ; i++)
+		covs.push(list[i]);
+	//console.log(covs.length);
+
+	inter.printResults(id, covs);
+}
+
+
+
+// ---------- Filling functions ----------
+
+Interface.prototype.printResults = function (id, coverages) {
+	// ------ init --------
+	var partG = document.querySelector("#" + id + " .data ");
+	partG.removeChild(partG.getElementsByTagName('h1')[0]);
+
+	// boucle
+	for (var i = 0; i < coverages.length; i++) {
+		var princ = document.createElement('div');
+		princ.className = 'peptide';
+			var third = document.createElement('div');
+				var name = document.createElement('p');
+				name.appendChild(document.createTextNode(coverages[i].id));
+			third.appendChild(name);
+				var cov = document.createElement('p');
+				cov.appendChild(document.createTextNode("Atomic coverage: ..."));
+			third.appendChild(cov);
+		princ.appendChild(third);
+		partG.appendChild(princ);
+	}
+}
+
+
+
+// ---------- Stats functions ----------
+
+Interface.prototype.statsHandler = function () {
+	var div = document.querySelector("#stats .data");
+	var proportions; var general; var peptides;
+
+	if (div.children.length == 1) {
+		div.removeChild(div.children[0]);
+
+		proportions = document.createElement("div");
+		proportions.id = "proportions";
+		proportions.classList.add("pannels");
+		div.appendChild(proportions);
+		inter.createProportionsStats(proportions);
+
+		var divDroit = document.createElement("div");
+		div.appendChild(divDroit);
+
+		general = document.createElement("div");
+		general.id = "general";
+		general.classList.add("pannels");
+		divDroit.appendChild(general);
+
+		peptides = document.createElement("div");
+		peptides.id = "peptidesCharts";
+		peptides.classList.add("pannels");
+		divDroit.appendChild(peptides);
+	} else {
+		inter.updateProportionsStats();
+		general = div.children[1];
+		peptides = div.children[2];
+	}
+
+	inter.createGeneralStats(general);
+	inter.createPeptidesStats(peptides);
+}
+
+Interface.prototype.createProportionsStats = function (div) {
+	var canvas = document.createElement("canvas");
+	canvas.height = 250;
+	canvas.width = 300;
+	div.appendChild(canvas);
+
+	var data = [
+		{
+			value: model.peptides.length,
+			color:"#F7464A",
+			highlight: "#FF5A5E",
+			label: "Peptides"
+		},
+		{
+			value: model.monomers.length,
+			color: "#46BFBD",
+			highlight: "#5AD3D1",
+			label: "Monomers"
+		},
+		{
+			value: model.others.length,
+			color: "#FDB45C",
+			highlight: "#FFC870",
+			label: "Others"
+		}
+	];
+
+	var options = {
+		//Boolean - Whether we should show a stroke on each segment
+		segmentShowStroke : true,
+		//String - The colour of each segment stroke
+		segmentStrokeColor : "#fff",
+		//Number - The width of each segment stroke
+		segmentStrokeWidth : 2,
+		//Number - The percentage of the chart that we cut out of the middle
+		percentageInnerCutout : 40, // This is 0 for Pie charts
+		animateRotate : false
+	}
+
+	var chart = new Chart(canvas.getContext("2d")).Doughnut(data,options);
+}
+
+Interface.prototype.updateProportionsStats = function () {
+	//var chart = 
+	//chart.segments[1].value = 10;
+}
+
+Interface.prototype.createGeneralStats = function (div) {
+
+}
+
+Interface.prototype.createPeptidesStats = function (div) {
+
+}
+
+
+
+var inter = new Interface();
+inter.init();
+document.addEventListener("zipLoaded",inter.pagesHandler,false);
+document.addEventListener("zipLoaded",inter.statsHandler,false);
+
+

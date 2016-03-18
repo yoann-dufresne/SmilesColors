@@ -1,0 +1,25 @@
+
+function Model () {
+	this.files = {};
+	this.monomers = new Array();
+	this.peptides = new Array();
+	this.others = new Array();
+};
+
+
+
+function ZipFile (name) {
+	this.name = name;
+	this.entries = {};
+	this.jsons = {};
+};
+
+ZipFile.prototype.addEntry = function (entry) {
+	this.entries[entry.filename] = entry;
+}
+
+
+
+
+
+var model = new Model ();

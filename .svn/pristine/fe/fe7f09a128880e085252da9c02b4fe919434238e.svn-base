@@ -1,0 +1,9 @@
+var smiles = "C1C(NC(=C2C=CC=C(C2=O)O)S1)C(=O)N(CCC3=CN=CN3)O";
+var lastMol;
+
+var smiles2mol = function (mol) {
+	lastMol = mol;
+}
+
+ChemDoodle.iChemLabs.readSMILES(smiles, {}, smiles2mol);
+
